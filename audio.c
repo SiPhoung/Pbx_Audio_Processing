@@ -58,5 +58,17 @@ void playAudio(const AudioData* audio) {
 }
 
 // 音声データをPCMファイルとして保存する関数
-void saveAsPcm(const char* outputFilename, const AudioData* audio) {
+int saveAsPcm(const char* outputFilename, const AudioData* audio) {
+    FILE* outFile = fopen(outputFilename, "wb");
+    if (!outFile) {
+        fprintf(stderr, "Failed to create PCM file: %s\n", outputFilename);
+        return -1;
+    }
+    
+    size_t sampleCount = audio->duration * audio->sampleRate * audio->channels;
+    fwrite(audio->samples, sizeof(float), sampleCount, outFile);
+    
+    fclose(outFile);
+    printf("Saved PCM file: %s\n", outputFilename);
+    return 0;
 }
