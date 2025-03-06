@@ -101,24 +101,8 @@ void listFiles(const char* folderPath) {
 }
 
 int main() {
-    struct stat st;
-
-    // Check if directory exists, create if not
-#ifdef _WIN32
-    if (stat(FOLDER_PATH, &st) != 0) {
-        if (!CreateDirectory(FOLDER_PATH, NULL)) {
-            printf("Failed to create directory: %s\n", FOLDER_PATH);
-            return EXIT_FAILURE;
-        }
-    }
-#else
-    if (stat(FOLDER_PATH, &st) == -1) {
-        if (mkdir(FOLDER_PATH, 0700) != 0) {
-            perror("Failed to create directory");
-            return EXIT_FAILURE;
-        }
-    }
-#endif
+    // フォルダの存在を確認し、必要であれば作成
+    createDirectoryIfNotExist(FOLDER_PATH);
 
     printf("フォルダ内の音声ファイルを検索しています...\n");
 
