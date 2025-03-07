@@ -20,6 +20,6 @@ int readAudioFile(const char* filename, AudioData* audio);
 void playAudio(const AudioData* audio);
 
 // 音声データをPCMファイルとして保存する関数
-void saveAsPcm(const char* outputFilename, const AudioData* audio);
+int saveAsPcm(const char* outputFilename, const AudioData* audio);
 
 #endif // AUDIO_H

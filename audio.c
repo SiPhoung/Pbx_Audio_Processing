@@ -11,7 +11,7 @@
 
 void dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
     AudioData* pAudio = (AudioData*)pDevice->pUserData;
-    size_t cursor = 0;
+    static size_t cursor = 0;
 
     float* pOut = (float*)pOutput;
     size_t samplesToWrite = (size_t)(frameCount * pAudio->channels);
@@ -99,7 +99,7 @@ void playAudio(const AudioData* audio) {
         exit(EXIT_FAILURE);
     }
 
-    Sleep(audio->duration);
+    Sleep(audio->duration*1000);
 
     ma_device_uninit(&device);
 }
