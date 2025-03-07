@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <time.h>
 #include "audio.h"
-#define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
 
 void dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
     AudioData* pAudio = (AudioData*)pDevice->pUserData;
@@ -19,11 +17,9 @@ void dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint
         samplesToWrite = pAudio->sampleCount - cursor;
     }
 
-    // Copy audio data to output buffer
     memcpy(pOut, pAudio->samples + cursor, samplesToWrite * sizeof(float));
     cursor += samplesToWrite;
 
-    // Fill remaining space with silence if necessary
     if (samplesToWrite < frameCount * pAudio->channels) {
         size_t silenceSamples = (frameCount * pAudio->channels) - samplesToWrite;
         memset(pOut + samplesToWrite, 0, silenceSamples * sizeof(float));
@@ -35,14 +31,13 @@ int readAudioFile(const char* filename, AudioData* audio) {
     ma_decoder decoder;
     ma_result result = ma_decoder_init_file(filename, NULL, &decoder);
     if (result != MA_SUCCESS) {
-        fprintf(stderr, "Failed to open audio file: %s\n", filename);
+        fprintf(stderr, "音声ファイルのオープンに失敗しました:: %s\n", filename);
         return -1;
     }
 
     audio->sampleRate = decoder.outputSampleRate;
     audio->channels = decoder.outputChannels;
 
-    // Get file extension
     const char* extension = strrchr(filename, '.');
     if (extension) {
         strncpy(audio->format, extension + 1, sizeof(audio->format) - 1);
@@ -52,24 +47,21 @@ int readAudioFile(const char* filename, AudioData* audio) {
         strcpy(audio->format, "unknown");
     }
 
-    // Get frame count
     ma_uint64 frameCount = 0;
     result = ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount);
     if (result != MA_SUCCESS) {
-        fprintf(stderr, "Failed to get frame count\n");
+        fprintf(stderr, "フレームの取得に失敗しました\n");
         ma_decoder_uninit(&decoder);
         return -1;
     }
 
-    // Allocate memory for samples
     audio->samples = (float*)malloc(frameCount * audio->channels * sizeof(float));
     if (!audio->samples) {
-        fprintf(stderr, "Failed to allocate memory for audio samples\n");
+        fprintf(stderr, "オーディオサンプル用のメモリの割り当てに失敗しました\n");
         ma_decoder_uninit(&decoder);
         return -1;
     }
 
-    // Read PCM frames
     ma_decoder_read_pcm_frames(&decoder, audio->samples, frameCount, NULL);
 
     audio->duration = (int)(frameCount / audio->sampleRate);
@@ -108,7 +100,7 @@ void playAudio(const AudioData* audio) {
 int saveAsPcm(const char* outputFilename, const AudioData* audio) {
     FILE* outFile = fopen(outputFilename, "wb");
     if (!outFile) {
-        fprintf(stderr, "Failed to create PCM file: %s\n", outputFilename);
+        fprintf(stderr, "PCMファイルの作成に失敗しました: %s\n", outputFilename);
         return -1;
     }
     
@@ -116,6 +108,6 @@ int saveAsPcm(const char* outputFilename, const AudioData* audio) {
     fwrite(audio->samples, sizeof(float), sampleCount, outFile);
     
     fclose(outFile);
-    printf("Saved PCM file: %s\n", outputFilename);
+    printf("PCMファイルとして保存しました: %s\n", outputFilename);
     return 0;
 }

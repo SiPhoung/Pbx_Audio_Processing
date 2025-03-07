@@ -16,11 +16,8 @@
 void processAudioFile(const char* filename) {
     AudioData audio;
 
-    // Read the audio file
-    if (readAudioFile(filename, &audio) != 0) {
-        printf("Failed to read audio file: %s\n", filename);
-        return;
-    }
+    // 音声データを読み込み
+    readAudioFile(filename, &audio);
 
     printf("読み込んだ音声: %s\n", filename);
     printf("フォーマット: %s\n", audio.format);
@@ -28,10 +25,10 @@ void processAudioFile(const char* filename) {
     printf("チャネル数: %d\n", audio.channels);
     printf("音声の長さ: %.2f 秒\n", audio.duration);
 
-    // Play audio
+    // 音声を再生
     playAudio(&audio);
 
-    // Save as PCM file
+    // 音声データをPCMファイルとして保存
     char pcmFilename[256];
     snprintf(pcmFilename, sizeof(pcmFilename), "%s.pcm", filename);
     saveAsPcm(pcmFilename, &audio);
@@ -47,7 +44,7 @@ void listFiles(const char* folderPath) {
     hFind = FindFirstFile(searchPath, &findFileData);
 
     if (hFind == INVALID_HANDLE_VALUE) {
-        printf("Could not open directory: %s\n", folderPath);
+        printf("ディレクトリを開くことに失敗しました。\n");
         return;
     }
 
@@ -55,7 +52,7 @@ void listFiles(const char* folderPath) {
         if (!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
             const char* filename = findFileData.cFileName;
 
-            // Check file extension
+            // サポートされている拡張子のみ処理
             if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
                 strstr(filename, ".flac") || strstr(filename, ".ogg")) {
 
@@ -65,7 +62,12 @@ void listFiles(const char* folderPath) {
             }
             else {
                 printf("スキップされたファイル (非対応の形式): %s\n", filename);
+                return;
             }
+        }
+        else {
+            printf("フォルダー内にファイルが見つかりませんでした。\n");
+            return;
         }
     } while (FindNextFile(hFind, &findFileData) != 0);
 
@@ -73,16 +75,16 @@ void listFiles(const char* folderPath) {
 #else
     DIR* dir = opendir(folderPath);
     if (!dir) {
-        perror("Failed to open directory");
+        perror("ディレクトリを開くことに失敗しました。");
         return;
     }
 
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) { // Regular file
+        if (entry->d_type == DT_REG) {
             const char* filename = entry->d_name;
 
-            // Check file extension
+            // サポートされている拡張子のみ処理
             if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
                 strstr(filename, ".flac") || strstr(filename, ".ogg")) {
 
@@ -93,6 +95,10 @@ void listFiles(const char* folderPath) {
             else {
                 printf("スキップされたファイル (非対応の形式): %s\n", filename);
             }
+        }
+        else {
+            printf("フォルダー内にファイルが見つかりませんでした。 %s\n");
+            return;
         }
     }
 
