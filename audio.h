@@ -6,10 +6,11 @@
 
 typedef struct {
     int sampleRate;                  // サンプルレート（Hz）
-    int duration;                    // 音声の長さ（秒）
+    float duration;                    // 音声の長さ（秒）
     int channels;                    // チャネル数
     char format[10];                 // 音声フォーマット
     float* samples;                  // 音声サンプル（float 配列）
+    int sampleCount;
 } AudioData;
 
 // 音声ファイルを読み込む関数
