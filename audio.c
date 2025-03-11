@@ -1,4 +1,4 @@
-#define MINIAUDIO_IMPLEMENTATION
+ï»¿#define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,27 +11,39 @@ void dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint
     AudioData* pAudio = (AudioData*)pDevice->pUserData;
     static size_t cursor = 0;
 
-    float* pOut = (float*)pOutput;
-    size_t samplesToWrite = (size_t)(frameCount * pAudio->channels);
-    if (samplesToWrite > pAudio->sampleCount - cursor) {
-        samplesToWrite = pAudio->sampleCount - cursor;
+    if (pAudio == NULL || pAudio->samples == NULL) {
+        memset(pOutput, 0, frameCount * pAudio->channels * sizeof(float));
+        return;
     }
 
-    memcpy(pOut, pAudio->samples + cursor, samplesToWrite * sizeof(float));
-    cursor += samplesToWrite;
+    float* pOut = (float*)pOutput;
+    size_t samplesToWrite = frameCount * pAudio->channels;
 
+    if (samplesToWrite > pAudio->sampleCount - pAudio->cursor) {
+        samplesToWrite = pAudio->sampleCount - pAudio->cursor;
+    }
+
+    memcpy(pOut, pAudio->samples + pAudio->cursor, samplesToWrite * sizeof(float));
+    pAudio->cursor += samplesToWrite;
+
+    // æ®‹ã‚Šã®éƒ¨åˆ†ã‚’ç„¡éŸ³ã«ã™ã‚‹
     if (samplesToWrite < frameCount * pAudio->channels) {
         size_t silenceSamples = (frameCount * pAudio->channels) - samplesToWrite;
         memset(pOut + samplesToWrite, 0, silenceSamples * sizeof(float));
     }
+
+    // å†ç”Ÿçµ‚äº†æ™‚ã®å‡¦ç†
+    if (pAudio->cursor >= pAudio->sampleCount) {
+        pAudio->cursor = pAudio->sampleCount;  // Ensure it doesnâ€™t overflow
+    }
 }
 
-// ‰¹ºƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚ŞŠÖ”
+// éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€é–¢æ•°
 int readAudioFile(const char* filename, AudioData* audio) {
     ma_decoder decoder;
     ma_result result = ma_decoder_init_file(filename, NULL, &decoder);
     if (result != MA_SUCCESS) {
-        fprintf(stderr, "‰¹ºƒtƒ@ƒCƒ‹‚ÌƒI[ƒvƒ“‚É¸”s‚µ‚Ü‚µ‚½:: %s\n", filename);
+        fprintf(stderr, "éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚ªãƒ¼ãƒ—ãƒ³ã«å¤±æ•—ã—ã¾ã—ãŸ:: %s\n", filename);
         return -1;
     }
 
@@ -50,28 +62,31 @@ int readAudioFile(const char* filename, AudioData* audio) {
     ma_uint64 frameCount = 0;
     result = ma_decoder_get_length_in_pcm_frames(&decoder, &frameCount);
     if (result != MA_SUCCESS) {
-        fprintf(stderr, "ƒtƒŒ[ƒ€‚Ìæ“¾‚É¸”s‚µ‚Ü‚µ‚½\n");
+        fprintf(stderr, "ãƒ•ãƒ¬ãƒ¼ãƒ ã®å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸ\n");
         ma_decoder_uninit(&decoder);
         return -1;
     }
 
     audio->samples = (float*)malloc(frameCount * audio->channels * sizeof(float));
     if (!audio->samples) {
-        fprintf(stderr, "ƒI[ƒfƒBƒIƒTƒ“ƒvƒ‹—p‚Ìƒƒ‚ƒŠ‚ÌŠ„‚è“–‚Ä‚É¸”s‚µ‚Ü‚µ‚½\n");
+        fprintf(stderr, "ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªã‚µãƒ³ãƒ—ãƒ«ç”¨ã®ãƒ¡ãƒ¢ãƒªã®å‰²ã‚Šå½“ã¦ã«å¤±æ•—ã—ã¾ã—ãŸ\n");
         ma_decoder_uninit(&decoder);
         return -1;
     }
 
     ma_decoder_read_pcm_frames(&decoder, audio->samples, frameCount, NULL);
-
+    audio->sampleCount = frameCount * audio->channels;
     audio->duration = (int)(frameCount / audio->sampleRate);
+    audio->cursor = 0;
     ma_decoder_uninit(&decoder);
 
     return 0;
 }
 
-// ‰¹ºÄ¶ŠÖ”
-void playAudio(const AudioData* audio) {
+// éŸ³å£°å†ç”Ÿé–¢æ•°
+void playAudio(AudioData* audio) {
+    printf("å†ç”Ÿé–‹å§‹: ã‚µãƒ³ãƒ—ãƒ«ãƒ¬ãƒ¼ãƒˆ: %d Hz, ãƒãƒ£ãƒ³ãƒãƒ«æ•°: %d\n", audio->sampleRate, audio->channels);
+
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format = ma_format_f32;
     config.playback.channels = audio->channels;
@@ -81,26 +96,34 @@ void playAudio(const AudioData* audio) {
 
     ma_device device;
     if (ma_device_init(NULL, &config, &device) != MA_SUCCESS) {
-        fprintf(stderr, "ƒfƒoƒCƒX‚Ì‰Šú‰»‚É¸”s‚µ‚Ü‚µ‚½\n");
+        fprintf(stderr, "ãƒ‡ãƒã‚¤ã‚¹ã®åˆæœŸåŒ–ã«å¤±æ•—ã—ã¾ã—ãŸ\n");
         exit(EXIT_FAILURE);
     }
+
+    // ğŸ”¹ Reset cursor before playing a new file
+    audio->cursor = 0;
 
     if (ma_device_start(&device) != MA_SUCCESS) {
         ma_device_uninit(&device);
-        fprintf(stderr, "ƒfƒoƒCƒX‚ÌŠJn‚É¸”s‚µ‚Ü‚µ‚½\n");
+        fprintf(stderr, "ãƒ‡ãƒã‚¤ã‚¹ã®é–‹å§‹ã«å¤±æ•—ã—ã¾ã—ãŸ\n");
         exit(EXIT_FAILURE);
     }
 
-    Sleep(audio->duration*1000);
+    // ğŸ”¹ Use proper waiting method instead of Sleep
+    printf("å†ç”Ÿä¸­... (%.2f ç§’)\n", (float)audio->duration);
+    while (audio->cursor < audio->sampleCount) {
+        ma_sleep(100);  // 100ms ã”ã¨ã«ãƒã‚§ãƒƒã‚¯
+    }
 
     ma_device_uninit(&device);
+    printf("å†ç”Ÿçµ‚äº†\n");
 }
 
-// ‰¹ºƒf[ƒ^‚ğPCMƒtƒ@ƒCƒ‹‚Æ‚µ‚Ä•Û‘¶‚·‚éŠÖ”
+// éŸ³å£°ãƒ‡ãƒ¼ã‚¿ã‚’PCMãƒ•ã‚¡ã‚¤ãƒ«ã¨ã—ã¦ä¿å­˜ã™ã‚‹é–¢æ•°
 int saveAsPcm(const char* outputFilename, const AudioData* audio) {
     FILE* outFile = fopen(outputFilename, "wb");
     if (!outFile) {
-        fprintf(stderr, "PCMƒtƒ@ƒCƒ‹‚Ìì¬‚É¸”s‚µ‚Ü‚µ‚½: %s\n", outputFilename);
+        fprintf(stderr, "PCMãƒ•ã‚¡ã‚¤ãƒ«ã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸ: %s\n", outputFilename);
         return -1;
     }
     
@@ -108,6 +131,6 @@ int saveAsPcm(const char* outputFilename, const AudioData* audio) {
     fwrite(audio->samples, sizeof(float), sampleCount, outFile);
     
     fclose(outFile);
-    printf("PCMƒtƒ@ƒCƒ‹‚Æ‚µ‚Ä•Û‘¶‚µ‚Ü‚µ‚½: %s\n", outputFilename);
+    printf("PCMãƒ•ã‚¡ã‚¤ãƒ«ã¨ã—ã¦ä¿å­˜ã—ã¾ã—ãŸ: %s\n", outputFilename);
     return 0;
 }

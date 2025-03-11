@@ -1,25 +1,26 @@
-#ifndef AUDIO_H
+ï»¿#ifndef AUDIO_H
 #define AUDIO_H
 
 #include <stdio.h>
 #include <stdlib.h>
 
 typedef struct {
-    int sampleRate;                  // ƒTƒ“ƒvƒ‹ƒŒ[ƒgiHzj
-    float duration;                    // ‰¹º‚Ì’·‚³i•bj
-    int channels;                    // ƒ`ƒƒƒlƒ‹”
-    char format[10];                 // ‰¹ºƒtƒH[ƒ}ƒbƒg
-    float* samples;                  // ‰¹ºƒTƒ“ƒvƒ‹ifloat ”z—ñj
-    int sampleCount;
+    int sampleRate;                  // ã‚µãƒ³ãƒ—ãƒ«ãƒ¬ãƒ¼ãƒˆï¼ˆHzï¼‰
+    float duration;                    // éŸ³å£°ã®é•·ã•ï¼ˆç§’ï¼‰
+    int channels;                    // ãƒãƒ£ãƒãƒ«æ•°
+    char format[10];                 // éŸ³å£°ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ
+    float* samples;                  // éŸ³å£°ã‚µãƒ³ãƒ—ãƒ«ï¼ˆfloat é…åˆ—ï¼‰
+    size_t sampleCount;   // ğŸ”¹ Track total samples
+    size_t cursor;        // ğŸ”¹ NEW: Cursor for playback tracking
 } AudioData;
 
-// ‰¹ºƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚ŞŠÖ”
+// éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€é–¢æ•°
 int readAudioFile(const char* filename, AudioData* audio);
 
-// ‰¹ºÄ¶ŠÖ”
-void playAudio(const AudioData* audio);
+// éŸ³å£°å†ç”Ÿé–¢æ•°
+void playAudio(AudioData* audio);
 
-// ‰¹ºƒf[ƒ^‚ğPCMƒtƒ@ƒCƒ‹‚Æ‚µ‚Ä•Û‘¶‚·‚éŠÖ”
+// éŸ³å£°ãƒ‡ãƒ¼ã‚¿ã‚’PCMãƒ•ã‚¡ã‚¤ãƒ«ã¨ã—ã¦ä¿å­˜ã™ã‚‹é–¢æ•°
 int saveAsPcm(const char* outputFilename, const AudioData* audio);
 
 #endif // AUDIO_H

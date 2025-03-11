@@ -48,9 +48,19 @@ void listFiles(const char* folderPath) {
         return;
     }
 
+    int fileFound = 0;  // Flag to track if any valid files exist
+
     do {
-        if (!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        // Skip directories (special entries)
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            continue;
+        }
             const char* filename = findFileData.cFileName;
+
+            // **Skip .pcm files**
+            if (strstr(filename, ".pcm")) {
+                continue;
+            }
 
             // サポートされている拡張子のみ処理
             if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
@@ -59,19 +69,17 @@ void listFiles(const char* folderPath) {
                 char filepath[512];
                 snprintf(filepath, sizeof(filepath), "%s\\%s", folderPath, filename);
                 processAudioFile(filepath);
+                fileFound = 1; // At least one file was processed
             }
             else {
                 printf("スキップされたファイル (非対応の形式): %s\n", filename);
-                return;
             }
-        }
-        else {
-            printf("フォルダー内にファイルが見つかりませんでした。\n");
-            return;
-        }
     } while (FindNextFile(hFind, &findFileData) != 0);
 
     FindClose(hFind);
+    if (!fileFound) {
+        printf("フォルダー内に対応する音声ファイルが見つかりませんでした。\n");
+    }
 #else
     DIR* dir = opendir(folderPath);
     if (!dir) {
