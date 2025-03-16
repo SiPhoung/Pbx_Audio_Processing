@@ -35,7 +35,6 @@ void processAudioFile(const char* filename) {
 }
 
 void listFiles(const char* folderPath) {
-#ifdef _WIN32
     WIN32_FIND_DATA findFileData;
     HANDLE hFind;
     char searchPath[512];
@@ -57,61 +56,29 @@ void listFiles(const char* folderPath) {
         }
             const char* filename = findFileData.cFileName;
 
-            // **Skip .pcm files**
-            if (strstr(filename, ".pcm")) {
-                continue;
-            }
+        // **Skip .pcm files**
+        if (strstr(filename, ".pcm")) {
+            continue;
+        }
 
-            // サポートされている拡張子のみ処理
-            if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
-                strstr(filename, ".flac") || strstr(filename, ".ogg")) {
+        // サポートされている拡張子のみ処理
+        if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
+            strstr(filename, ".flac") || strstr(filename, ".ogg")) {
 
-                char filepath[512];
-                snprintf(filepath, sizeof(filepath), "%s\\%s", folderPath, filename);
-                processAudioFile(filepath);
-                fileFound = 1; // At least one file was processed
-            }
-            else {
-                printf("スキップされたファイル (非対応の形式): %s\n", filename);
-            }
+            char filepath[512];
+            snprintf(filepath, sizeof(filepath), "%s\\%s", folderPath, filename);
+            processAudioFile(filepath);
+            fileFound = 1; // At least one file was processed
+        }
+        else {
+            printf("スキップされたファイル (非対応の形式): %s\n", filename);
+        }
     } while (FindNextFile(hFind, &findFileData) != 0);
 
     FindClose(hFind);
     if (!fileFound) {
         printf("フォルダー内に対応する音声ファイルが見つかりませんでした。\n");
     }
-#else
-    DIR* dir = opendir(folderPath);
-    if (!dir) {
-        perror("ディレクトリを開くことに失敗しました。");
-        return;
-    }
-
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) {
-            const char* filename = entry->d_name;
-
-            // サポートされている拡張子のみ処理
-            if (strstr(filename, ".wav") || strstr(filename, ".mp3") ||
-                strstr(filename, ".flac") || strstr(filename, ".ogg")) {
-
-                char filepath[512];
-                snprintf(filepath, sizeof(filepath), "%s/%s", folderPath, filename);
-                processAudioFile(filepath);
-            }
-            else {
-                printf("スキップされたファイル (非対応の形式): %s\n", filename);
-            }
-        }
-        else {
-            printf("フォルダー内にファイルが見つかりませんでした。 %s\n");
-            return;
-        }
-    }
-
-    closedir(dir);
-#endif
 }
 
 int main() {
